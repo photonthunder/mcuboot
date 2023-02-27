@@ -52,6 +52,47 @@ const struct boot_uart_funcs boot_funcs = {
 };
 #endif
 
+#include <zephyr/drivers/gpio.h>
+
+#define LED_1 DT_ALIAS(led1)
+#define LED_2 DT_ALIAS(led2)
+#define LED_3 DT_ALIAS(led3)
+#define LED_4 DT_ALIAS(led4)
+#define LED_5 DT_ALIAS(led5)
+#define LED_6 DT_ALIAS(led6)
+
+#define NUM_TEST_POINTS 6
+typedef enum { LED_1 = 0, LED_2, LED_3, LED_4, LED_5, LED_6 } Testpoint_t;
+
+static const struct gpio_dt_spec TestpointDev[] = {
+	GPIO_DT_SPEC_GET(LED_1, gpios),	 GPIO_DT_SPEC_GET(LED_2, gpios),
+	GPIO_DT_SPEC_GET(LED_3, gpios), GPIO_DT_SPEC_GET(LED_4, gpios),
+	GPIO_DT_SPEC_GET(LED_5, gpios), GPIO_DT_SPEC_GET(LED_6, gpios)
+};
+
+static void testPointInit(void)
+{
+	int ret;
+	for (int i = 0; i < NUM_TEST_POINTS; i++) {
+		if (!gpio_is_ready_dt(&(TestpointDev[i]))) {
+			printk("TPD Error: %s is not ready\n", TestpointDev[i].port->name);
+			return;
+		}
+		ret = gpio_pin_configure_dt(&TestpointDev[i], GPIO_OUTPUT);
+		if (ret != 0) {
+			printk("TPD Error %d: failed to configure %s pin %d\n", ret, TestpointDev[i].port->name,
+			       TestpointDev[i].pin);
+			return;
+		}
+		gpio_pin_set_dt(&TestpointDev[i], 0);
+	}
+}
+
+static void testpoint(Testpoint_t testpoint, int onOrOff)
+{
+	gpio_pin_set_dt(&TestpointDev[testpoint], onOrOff);
+}
+
 #if defined(CONFIG_BOOT_USB_DFU_WAIT) || defined(CONFIG_BOOT_USB_DFU_GPIO)
 #include <zephyr/usb/class/usb_dfu.h>
 #endif
@@ -507,7 +548,8 @@ void main(void)
     FIH_DECLARE(fih_rc, FIH_FAILURE);
 
     MCUBOOT_WATCHDOG_FEED();
-
+    testPointInit();
+    testpoint(0,1);
 #if !defined(MCUBOOT_DIRECT_XIP)
     BOOT_LOG_INF("Starting JMA bootloader");
 #else
@@ -619,6 +661,7 @@ void main(void)
     mcuboot_status_change(MCUBOOT_STATUS_BOOTABLE_IMAGE_FOUND);
 
     ZEPHYR_BOOT_LOG_STOP();
+    testpoint(0,0);
     do_boot(&rsp);
 
     mcuboot_status_change(MCUBOOT_STATUS_BOOT_FAILED);
