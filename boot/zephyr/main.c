@@ -406,7 +406,7 @@ int main(void)
     MCUBOOT_WATCHDOG_FEED();
 
 #if !defined(MCUBOOT_DIRECT_XIP)
-    BOOT_LOG_INF("Starting bootloader");
+    BOOT_LOG_INF("JMA bootloader");
 #else
     BOOT_LOG_INF("Starting Direct-XIP bootloader");
 #endif
